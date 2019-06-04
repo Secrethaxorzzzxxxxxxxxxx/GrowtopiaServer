@@ -558,6 +558,7 @@ public:
 	static string PlayerDB::fixColors(string text);
 	static int playerLogin(ENetPeer* peer, string username, string password);
 	static int playerRegister(string username, string password, string passwordverify, string email, string discord);
+	static int saveset(string username, int cloth_hair, int cloth_shirt, int cloth_pants, int cloth_feet, int cloth_face, int cloth_hand, int cloth_back, int cloth_mask, int gems, bool havelbot, bool havevip, bool havetitle, int totalbreak, int gemstone);
 };
 
 string PlayerDB::getProperName(string name) {
@@ -572,7 +573,33 @@ string PlayerDB::getProperName(string name) {
 	for (char c : ret) if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) ret2 += c;
 	return ret2;
 }
+int PlayerDB::saveset(string username, int cloth_hair, int cloth_shirt, int cloth_pants, int cloth_feet, int cloth_face, int cloth_hand, int cloth_back, int cloth_mask, int gems, bool havelbot, bool havevip, bool havetitle, int totalbreak, int gemstone) {
+	if (username.length() < 3) return -2;
+	std::ifstream ifs("sets/" + username + ".json");
 
+	std::ofstream o("sets/" + username + ".json");
+	if (!o.is_open()) {
+		cout << GetLastError() << endl;
+		_getch();
+	}
+	json j;
+	j["cloth_hair"] = cloth_hair;
+	j["cloth_shirt"] = cloth_shirt;
+	j["cloth_pants"] = cloth_pants;
+	j["cloth_feet"] = cloth_feet;
+	j["cloth_face"] = cloth_face;
+	j["cloth_hand"] = cloth_hand;
+	j["cloth_back"] = cloth_back;
+	j["cloth_mask"] = cloth_mask;
+	j["gems"] = gems;
+	j["havelbot"] = havelbot;
+	j["havevip"] = havevip;
+	j["havetitle"] = havetitle;
+	j["totalbreak"] = totalbreak;
+	j["gemstone"] = gemstone;
+	o << j << std::endl;
+	return 1;
+}
 string PlayerDB::fixColors(string text) {
 	string ret = "";
 	int colorLevel = 0;
@@ -1587,6 +1614,36 @@ void SendPacketRaw(int a1, void *packetData, size_t packetDataSize, void *a4, EN
 					world->items[x + (y*world->width)].breakLevel = 0;
 					if (world->items[x + (y*world->width)].foreground != 0)
 					{
+						int randomGem = (rand() % 5) + 1;
+						int moregem = (3 * randomGem);
+						((PlayerInfo*)peer->data)->gems = ((PlayerInfo*)peer->data)->gems + moregem;
+						GamePacket p = packetEnd(appendInt(appendString(createPacket(), "OnSetBux"), ((PlayerInfo*)peer->data)->gems));
+						ENetPacket * packet = enet_packet_create(p.data,
+							p.len,
+							ENET_PACKET_FLAG_RELIABLE);
+						enet_peer_send(peer, 0, packet);
+						delete p.data;
+						((PlayerInfo*)peer->data)->totalpunched = ((PlayerInfo*)peer->data)->totalpunched + 1;
+						string username1;
+						int cloth_hair1, cloth_shirt1, cloth_pants1, cloth_feet1, cloth_face1, cloth_hand1, cloth_back1, cloth_mask1, gems1, totalbreak, gemstone;
+						bool havelbot, havevip, havetitle;
+						username1 = ((PlayerInfo*)(peer->data))->rawName;
+						cloth_hair1 = ((PlayerInfo*)(peer->data))->cloth_hair;
+						cloth_shirt1 = ((PlayerInfo*)(peer->data))->cloth_shirt;
+						cloth_pants1 = ((PlayerInfo*)(peer->data))->cloth_pants;
+						cloth_feet1 = ((PlayerInfo*)(peer->data))->cloth_feet;
+						cloth_face1 = ((PlayerInfo*)(peer->data))->cloth_face;
+						cloth_hand1 = ((PlayerInfo*)(peer->data))->cloth_hand;
+						cloth_back1 = ((PlayerInfo*)(peer->data))->cloth_back;
+						cloth_mask1 = ((PlayerInfo*)(peer->data))->cloth_mask;
+						gems1 = ((PlayerInfo*)(peer->data))->gems;
+						havelbot = ((PlayerInfo*)(peer->data))->havelbot;
+						havevip = ((PlayerInfo*)(peer->data))->havevip;
+						havetitle = ((PlayerInfo*)(peer->data))->havetitle;
+						totalbreak = ((PlayerInfo*)(peer->data))->totalpunched;
+						gemstone = ((PlayerInfo*)(peer->data))->gemstone;
+						PlayerDB::saveset(username1, cloth_hair1, cloth_shirt1, cloth_pants1, cloth_feet1, cloth_face1, cloth_hand1, cloth_back1, cloth_mask1, gems1, havelbot, havevip, havetitle, totalbreak, gemstone);
+						
 						if (world->items[x + (y*world->width)].foreground == 242)
 						{
 							world->owner = "";
